@@ -1,100 +1,131 @@
 # ServiceNow Loaner Laptop Management
 
-An end-to-end ServiceNow application for managing company loaner laptop requests, approvals, device assignment, availability, and returns.
+An end-to-end ServiceNow application for managing company loaner laptop requests, approvals, device assignments, availability, and returns.
 
-> **Portfolio / Capstone Project**  
-> Platform: ServiceNow  
-> Application: Loaner Laptop Desk
+## Overview
 
-## Project Overview
+The Loaner Laptop Desk application provides a controlled workflow for employees to request temporary loaner laptops.
 
-The application allows users to request a loaner laptop through the Service Catalog. The solution manages the request lifecycle from catalog submission and manager approval through loan assignment, return tracking, and request closure.
+The application automates:
 
-A key feature is dynamic device availability: laptops that currently have an **Active** loan assignment are automatically removed from the Loaner Device selection.
+- Loaner laptop requests through Service Catalog
+- Requester and manager population
+- Loan-period validation
+- Manager approval
+- Dynamic laptop availability
+- Loan assignment creation
+- Return tracking
+- Request closure
+- Role-based access and security
 
-## Architecture
-
-```text
-User
-  |
-  v
-Service Catalog: Loaner Laptop Request
-  |
-  +--> Catalog Client Scripts
-  |      - Requester population
-  |      - Manager population
-  |      - Date validation
-  |      - >14-day reason validation
-  |
-  +--> Advanced Reference Qualifier
-  |      |
-  |      v
-  |   LoanerDeviceFilter
-  |      |
-  |      v
-  |   u_loan_assignment
-  |      |
-  |      +--> Status = Active
-  |      |
-  |      v
-  |   Exclude actively loaned devices
-  |
-  v
-Flow Designer
-  |
-  +--> Manager Approval
-  +--> Create Loan Assignment
-  +--> Wait for Returned
-  +--> Loaner Laptop - Return
-  +--> Update Requested Item
-```
-
-## Main Components
+## Key Features
 
 ### Service Catalog
-- Category: Hardware
-- Catalog Item: Loaner Laptop Request
-- Variables:
-  - Requester
-  - Manager
-  - Loan Start Date
-  - Loan End Date
-  - Loaner Device
-  - Reason
 
-### Custom Table
+**Catalog Item:** Loaner Laptop Request
 
-`u_loan_assignment`
+Users provide:
 
-Fields include:
-- Loaner Device
-- Requested For
-- Start Date
-- End Date
-- Return Date
-- Status
+- Requester
+- Manager
+- Loan start date
+- Loan end date
+- Loaner device
+- Reason for loan
 
-Status values:
+### Automated Approval Workflow
+
+The request follows:
+
+`Catalog Request → Manager Approval → Loan Assignment → Active Loan → Return → Closure`
+
+Manager approval is handled using Flow Designer.
+
+### Dynamic Device Availability
+
+The loaner device reference field dynamically excludes laptops that are currently assigned through an active loan.
+
+This prevents the same laptop from being assigned to multiple active loans.
+
+Implemented using:
+
+- GlideRecord
+- Script Include
+- Reference Qualifier
+- Dynamic query generation
+
+### Loan Assignment Management
+
+A custom `u_loan_assignment` table tracks each loan.
+
+Lifecycle states:
+
 - Requested
 - Active
 - Returned
 - Cancelled
 
-### Flow Designer
+### Client-Side Validation
 
-**Loaner Laptop Request**
+Catalog Client Scripts handle:
 
-Lifecycle:
+- Loan date validation
+- Requester population
+- Manager population
+- Extended-loan justification
 
-`Request → Manager Approval → Loan Assignment → Wait for Return → Return Processing → Closure`
+### Security
 
-### Script Include
+The application includes:
 
-`LoanerDeviceFilter`
+- Custom roles
+- ACLs
+- User Criteria
+- Application menu
+- Loan Assignment module
 
-The Script Include queries `u_loan_assignment` for active assignments and builds a dynamic reference qualifier.
+## Technical Implementation
 
-```javascript
+| Component | Implementation |
+|---|---|
+| Service Catalog | Loaner Laptop Request |
+| Flow Designer | Request and Return workflows |
+| Custom Table | `u_loan_assignment` |
+| Scripting | JavaScript / GlideRecord |
+| Script Include | `LoanerDeviceFilter` |
+| Reference Qualifier | Dynamic device filtering |
+| Client Scripts | Request validation and field automation |
+| Security | Roles, ACLs and User Criteria |
+| Update Set | Loaner Laptop Desk |
+
+## Architecture
+
+```text
+Employee
+   ↓
+Service Catalog
+   ↓
+Loaner Laptop Request
+   ↓
+Catalog Client Scripts
+   ↓
+Flow Designer
+   ↓
+Manager Approval
+   ↓
+Loan Assignment
+   ↓
+Active Loan
+   ↓
+Return
+   ↓
+Request Closure
+
+Dynamic Device Filtering
+
+The application identifies currently active loan assignments and excludes their associated devices from the catalog reference field.
+
+Example:
 var LoanerDeviceFilter = Class.create();
 LoanerDeviceFilter.prototype = {
     initialize: function() {},
@@ -122,86 +153,68 @@ LoanerDeviceFilter.prototype = {
 
     type: 'LoanerDeviceFilter'
 };
-```
 
-Reference Qualifier:
+Flow Designer
+Loaner Laptop Request
+Service Catalog request is submitted
+Catalog variables are retrieved
+Manager approval is requested
+Approved requests create a Loan Assignment
+Assignment remains active until the laptop is returned
+Return workflow updates the request
 
-```javascript
-javascript:new LoanerDeviceFilter().excludeLoanedDevices()
-```
+Rejected or failed requests are handled through dedicated flow branches.
 
-## Loaner Device Availability
+Loaner Laptop Return
 
-The application currently uses the naming convention:
+The return process updates the loan assignment and completes the associated request workflow.
 
-`LOANER-LAPTOP-01` through `LOANER-LAPTOP-08`
+Screenshots
+Flow Designer
 
-The reference qualifier first identifies these loaner computers and then excludes any device referenced by a Loan Assignment whose status is `active`.
+Update Set
 
-This avoids hardcoding individual device sys_ids.
+Installation
 
-## Security
+This project can be imported into a ServiceNow personal developer instance using the included Update Set XML.
 
-The application includes:
-- Roles
-- Access Controls
-- User Criteria
-- Application navigation
-- Loan assignment access restrictions
+Steps
+Download Loaner_Laptop_Desk.xml
+Open a ServiceNow instance
+Navigate to System Update Sets → Retrieved Update Sets
+Import the XML
+Preview the Update Set
+Resolve any instance-specific conflicts if required
+Commit the Update Set
+Verify the application, catalog item, flows, scripts, roles, and tables
+Project Files
+Loaner_Laptop_Desk.xml - ServiceNow Update Set export
+README.md - Project documentation
+project-details.md - Detailed project information
+flow-details.md - Flow Designer documentation
+UPDATE-SET-EXPORT.md - Update Set information
+screenshots/ - Project screenshots
+Technologies
+ServiceNow
+Service Catalog
+Flow Designer
+JavaScript
+GlideRecord
+Script Includes
+Catalog Client Scripts
+Reference Qualifiers
+ACLs
+Roles
+User Criteria
+Update Sets
+Future Enhancements
+Automated email notifications
+Scheduled overdue-return notifications
+Laptop condition tracking
+Automated availability dashboard
+Asset lifecycle integration
+Reporting and analytics
+Automated return reminders
+Project Purpose
 
-Relevant roles include:
-- `u_loan_assignment_user`
-- `loaner_admin`
-
-## Automation
-
-The project includes:
-- Loaner Laptop - Request flow
-- Loaner Laptop - Return flow
-- Catalog Client Scripts
-- Script Includes
-- Dynamic Reference Qualifier
-
-## Screenshots
-
-### Flow Designer
-
-![Loaner Laptop Request Flow](screenshots/flow-loaner-laptop-request.png)
-
-### Update Set
-
-![Update Set - Part 1](screenshots/update-set-01.png)
-
-![Update Set - Part 2](screenshots/update-set-02.png)
-
-![Update Set - Part 3](screenshots/update-set-03.png)
-
-## Update Set
-
-The complete application is currently captured in the ServiceNow Update Set:
-
-**Loaner Laptop Desk**
-
-The Update Set contains approximately 59 customer updates covering the application's configuration and development artifacts.
-
-> The Update Set XML can be added to this repository after exporting it from the ServiceNow instance.
-
-## Technologies / ServiceNow Features
-
-- ServiceNow Service Catalog
-- Flow Designer
-- GlideRecord
-- Script Includes
-- Catalog Client Scripts
-- Advanced Reference Qualifiers
-- Custom Tables
-- Dictionary / Field configuration
-- ACLs
-- Roles
-- User Criteria
-- Application Menus and Modules
-- Update Sets
-
-## Portfolio Notes
-
-This project demonstrates practical ServiceNow development across both client-side and server-side configuration, workflow automation, data modeling, security, and dynamic reference filtering.
+This project demonstrates practical ServiceNow development skills across application configuration, scripting, automation, Service Catalog, workflow design, dynamic reference filtering, and platform security.
